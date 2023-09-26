@@ -6,36 +6,57 @@ class ProductManager {
     this.products = [];
     this.nextID = 0;
 
-    try {
-      const data = fs.readFileSync(this.path, 'utf8');
-      this.products = JSON.parse(data);
-      if (this.products.length > 0) {
-        this.nextID = Math.max(...this.products.map((product) => product.id));
-      }
-    } catch (error) {
-      this._saveData();
-    }
   }
 
-  _saveData() {
-    const data = JSON.stringify(this.products, null, 2);
+  _saveData(dataSave) {
+    const data = JSON.stringify(dataSave, null, 2);
     fs.writeFileSync(this.path, data, 'utf8');
   }
 
   addProduct(product) {
-    this.nextID++;
-    product.id = this.nextID;
-    this.products.push(product);
-    this._saveData();
-    return product.id;
+    // preguntar si son validos los datos
+    if (this.validarCampos(product)) {
+      this.nextID++;
+      product.id = this.nextID;
+      this.products.push(product);
+      this._saveData(product);
+      return product.id;
+    }
   }
 
-  getProducts() {
-    return this.products;
+  // validar los datos del producto
+  validarCampos(product) {
+    let validos = true;
+    let values = Object.values(product);
+    values.forEach((valor) => {
+        if (valor === null || valor === undefined || valor.length === 0) {
+        console.log("Los campos deben ser obligatorios");
+        validos =  false;
+        }
+    });
+    return validos;
   }
 
-  getProductById(id) {
-    return this.products.find((product) => product.id === id);
+  async getProducts() {
+    try {
+        const data = await fs.promises.readFile(this.path, 'utf-8');
+        return JSON.parse(data);
+    } catch (err) {
+        console.log(`No se pudo leer el archivo. Error: ${err}`);
+    }  
+  }
+
+  async getProductById(id) {
+    try {
+        const file = await fs.promises.readFile(this.path, 'utf-8');
+        const data = JSON.parse(file); // aca ya tengo todos los productos en data
+        
+        // busco el producto que coincida con el id y lo retorno
+        const prodId = data.find((product) => product.id === id);
+        return prodId;
+    } catch (error) {
+        console.log(`El producto con ID no existe`);
+    } 
   }
 
   updateProduct(id, updatedProduct) {
@@ -94,3 +115,4 @@ console.log('Producto actualizado:', updated);
 
 const deleted = productManager.deleteProduct(productId);
 console.log('Producto eliminado:', deleted);
+
